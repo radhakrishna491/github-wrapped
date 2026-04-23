@@ -4,13 +4,13 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function Home() {
-  const [username, setUsername] = useState<string>('');
+  const [username, setUsername] = useState('');
   const router = useRouter();
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (username.trim()) {
-      router.push(`/dashboard/${username}`);
+      router.push(`/dashboard?username=${username}`);
     }
   };
 
