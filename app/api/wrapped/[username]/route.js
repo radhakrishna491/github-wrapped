@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 
 export async function GET(request, { params }) {
   const { username } = await params;
@@ -10,27 +11,48 @@ export async function GET(request, { params }) {
   }
   
   try {
+    // Get authentication token from cookies (if user is logged in)
+    const cookieStore = await cookies();
+    const token = cookieStore.get('github_token')?.value;
+    
+    // Setup headers with authentication if available
+    const headers = {
+      'Accept': 'application/json',
+      'User-Agent': 'GitHub-Wrapped-App',
+    };
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
     // Fetch user profile
-    const userRes = await fetch(`https://api.github.com/users/${username}`);
+    const userRes = await fetch(`https://api.github.com/users/${username}`, { headers });
     
     if (!userRes.ok) {
       if (userRes.status === 404) {
-        return NextResponse.json({ error: 'User not found' }, { status: 404 });
+        return NextResponse.json({ 
+          error: `User "${username}" not found on GitHub. Please check the spelling.` 
+        }, { status: 404 });
       }
-      return NextResponse.json({ error: 'GitHub API error' }, { status: userRes.status });
+      if (userRes.status === 403) {
+        return NextResponse.json({ 
+          error: 'Rate limit exceeded. Please try again later or login with GitHub for higher limits.' 
+        }, { status: 403 });
+      }
+      return NextResponse.json({ error: `GitHub API error: ${userRes.status}` }, { status: userRes.status });
     }
     
     const userData = await userRes.json();
     
     // Fetch user repos
-    const reposRes = await fetch(`https://api.github.com/users/${username}/repos?per_page=50&sort=updated`);
+    const reposRes = await fetch(`https://api.github.com/users/${username}/repos?per_page=50&sort=updated`, { headers });
     const repos = await reposRes.json();
     
     if (!Array.isArray(repos)) {
       return NextResponse.json({ error: 'Failed to fetch repos' }, { status: 500 });
     }
     
-    // Initialize stats
+    // Calculate stats
     let totalCommits = 0;
     const commitsByHour = Array(24).fill(0);
     const languageCount = {};
@@ -39,11 +61,12 @@ export async function GET(request, { params }) {
     // NEW: Monthly commits (Jan = 0, Dec = 11)
     const monthlyCommits = Array(12).fill(0);
     
-    // Get commits from first 5 repos
+    // Get commits from first 5 repos (to avoid rate limits)
     for (const repo of repos.slice(0, 5)) {
       try {
         const commitsRes = await fetch(
-          `https://api.github.com/repos/${username}/${repo.name}/commits?per_page=100&author=${username}`
+          `https://api.github.com/repos/${username}/${repo.name}/commits?per_page=100&author=${username}`,
+          { headers }
         );
         
         if (commitsRes.ok) {
@@ -66,35 +89,41 @@ export async function GET(request, { params }) {
         console.log(`Error fetching commits for ${repo.name}:`, err.message);
       }
       
+      // Count languages
       if (repo.language) {
         languageCount[repo.language] = (languageCount[repo.language] || 0) + 1;
       }
       
+      // Count stars
       totalStars += repo.stargazers_count || 0;
+      
+      // Small delay to avoid rate limiting
       await new Promise(resolve => setTimeout(resolve, 200));
     }
     
-    // Fetch PRs and Issues count
+    // Fetch PRs and Issues count (only if we have token, otherwise skip)
     let totalPRs = 0;
     let totalIssues = 0;
     
-    try {
-      const prsRes = await fetch(`https://api.github.com/search/issues?q=author:${username}+type:pr`);
-      const prsData = await prsRes.json();
-      totalPRs = prsData.total_count || 0;
-    } catch (err) {
-      console.log('Error fetching PRs:', err.message);
+    if (token) {
+      try {
+        const prsRes = await fetch(`https://api.github.com/search/issues?q=author:${username}+type:pr`, { headers });
+        const prsData = await prsRes.json();
+        totalPRs = prsData.total_count || 0;
+      } catch (err) {
+        console.log('Error fetching PRs:', err.message);
+      }
+      
+      try {
+        const issuesRes = await fetch(`https://api.github.com/search/issues?q=author:${username}+type:issue`, { headers });
+        const issuesData = await issuesRes.json();
+        totalIssues = issuesData.total_count || 0;
+      } catch (err) {
+        console.log('Error fetching issues:', err.message);
+      }
     }
     
-    try {
-      const issuesRes = await fetch(`https://api.github.com/search/issues?q=author:${username}+type:issue`);
-      const issuesData = await issuesRes.json();
-      totalIssues = issuesData.total_count || 0;
-    } catch (err) {
-      console.log('Error fetching issues:', err.message);
-    }
-    
-    // Calculate longest streak
+    // Calculate longest streak (simplified)
     let longestStreak = 0;
     if (totalCommits > 0) {
       longestStreak = Math.min(Math.floor(totalCommits / 10), 30);
@@ -129,6 +158,7 @@ export async function GET(request, { params }) {
     // Month names
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     
+    // Return response
     return NextResponse.json({
       user: {
         name: userData.name || userData.login,
@@ -159,7 +189,7 @@ export async function GET(request, { params }) {
   } catch (error) {
     console.error('API Error:', error);
     return NextResponse.json({ 
-      error: 'Failed to fetch data', 
+      error: 'Failed to fetch data. Please try again.', 
       details: error.message 
     }, { status: 500 });
   }
