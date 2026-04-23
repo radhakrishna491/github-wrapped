@@ -71,7 +71,12 @@ export default function Dashboard() {
       try {
         // Fetch user data
         const userRes = await fetch(`https://api.github.com/users/${username}`);
-        if (!userRes.ok) throw new Error('User not found');
+        if (!userRes.ok) {
+          if (userRes.status === 404) {
+            throw new Error(`User "${username}" not found on GitHub`);
+          }
+          throw new Error('GitHub API error');
+        }
         const userData = await userRes.json();
         setUser(userData);
 
@@ -99,6 +104,7 @@ export default function Dashboard() {
         link.click();
       } catch (err) {
         console.error('Error generating image:', err);
+        alert('Failed to generate image. Try again.');
       }
     }
   };
@@ -119,10 +125,18 @@ export default function Dashboard() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-black to-blue-900 flex items-center justify-center">
-        <div className="bg-red-500/20 backdrop-blur-lg rounded-2xl p-8 text-center">
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-black to-blue-900 flex items-center justify-center p-4">
+        <div className="bg-red-500/20 backdrop-blur-lg rounded-2xl p-8 text-center max-w-md">
           <p className="text-red-300 text-xl">❌ {error}</p>
-          <Link href="/" className="text-purple-300 mt-4 inline-block hover:underline">← Go Back</Link>
+          {username && (
+            <p className="text-gray-300 mt-2">
+              Username "<span className="text-purple-300">{username}</span>" not found on GitHub.
+            </p>
+          )}
+          <p className="text-gray-400 text-sm mt-4">
+            Make sure the username is spelled correctly and the GitHub account exists.
+          </p>
+          <Link href="/" className="text-purple-300 mt-6 inline-block hover:underline">← Go Back and Try Again</Link>
         </div>
       </div>
     );
@@ -135,7 +149,7 @@ export default function Dashboard() {
       <div ref={dashboardRef} className="max-w-6xl mx-auto">
         
         {/* Header with Share Buttons */}
-        <div className="flex justify-end gap-3 mb-6">
+        <div className="flex justify-end gap-3 mb-6 flex-wrap">
           <button
             onClick={handleDownload}
             className="px-4 py-2 bg-purple-600/50 hover:bg-purple-600 rounded-lg text-white text-sm transition-all duration-300 hover:scale-105"
