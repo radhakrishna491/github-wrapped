@@ -4,13 +4,13 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function Home() {
-  const [username, setUsername] = useState('');
+  const [username, setUsername] = useState<string>('');
   const router = useRouter();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (username.trim()) {
-      router.push(`/dashboard/${username}`);  // ← BACKTICKS here!
+      router.push(`/dashboard/${username}`);
     }
   };
 
