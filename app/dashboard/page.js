@@ -1,8 +1,50 @@
-'use client';
+''use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import CountUp from 'react-countup';
+import { toPng } from 'html-to-image';
+
+// Loading Skeleton Component
+function LoadingSkeleton() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-black to-blue-900 p-8">
+      <div className="max-w-6xl mx-auto">
+        {/* Profile Skeleton */}
+        <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 mb-8">
+          <div className="flex items-center gap-6 flex-wrap">
+            <div className="w-24 h-24 rounded-full bg-white/20 animate-pulse"></div>
+            <div className="flex-1">
+              <div className="h-8 bg-white/20 rounded w-48 animate-pulse mb-2"></div>
+              <div className="h-4 bg-white/20 rounded w-32 animate-pulse"></div>
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-4 mt-8">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="bg-white/5 rounded-xl p-4 animate-pulse">
+                <div className="h-8 bg-white/20 rounded w-16 mx-auto mb-2"></div>
+                <div className="h-4 bg-white/20 rounded w-20 mx-auto"></div>
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* Stats Skeleton */}
+        <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8">
+          <div className="h-8 bg-white/20 rounded w-48 mx-auto mb-6 animate-pulse"></div>
+          <div className="grid grid-cols-2 gap-6">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="bg-white/5 rounded-xl p-6 animate-pulse">
+                <div className="h-12 bg-white/20 rounded w-24 mx-auto mb-2"></div>
+                <div className="h-4 bg-white/20 rounded w-32 mx-auto"></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function Dashboard() {
   const searchParams = useSearchParams();
@@ -11,6 +53,7 @@ export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const dashboardRef = useRef(null);
 
   useEffect(() => {
     if (!username) {
@@ -27,7 +70,7 @@ export default function Dashboard() {
         const userData = await userRes.json();
         setUser(userData);
 
-        // Fetch wrapped stats from your API
+        // Fetch wrapped stats
         const statsRes = await fetch(`/api/wrapped/${username}`);
         const statsData = await statsRes.json();
         if (statsData.error) throw new Error(statsData.error);
@@ -41,20 +84,40 @@ export default function Dashboard() {
     fetchData();
   }, [username]);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-black to-blue-900 flex items-center justify-center">
-        <div className="text-white text-xl">Loading GitHub Wrapped...</div>
-      </div>
-    );
-  }
+  const handleDownload = async () => {
+    if (dashboardRef.current) {
+      try {
+        const dataUrl = await toPng(dashboardRef.current, { quality: 0.95 });
+        const link = document.createElement('a');
+        link.download = `github-wrapped-${user?.login || username}.png`;
+        link.href = dataUrl;
+        link.click();
+      } catch (err) {
+        console.error('Error generating image:', err);
+      }
+    }
+  };
+
+  const handleShare = () => {
+    const url = window.location.href;
+    navigator.clipboard.writeText(url);
+    alert('Link copied to clipboard! Share it with your friends.');
+  };
+
+  const handleTwitterShare = () => {
+    const text = `Check out my GitHub Wrapped! I have ${stats?.stats?.totalCommits || 0} commits and I'm a ${stats?.stats?.vibe || 'Coder'}! 🚀`;
+    const url = window.location.href;
+    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
+  };
+
+  if (loading) return <LoadingSkeleton />;
 
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-900 via-black to-blue-900 flex items-center justify-center">
-        <div className="bg-red-500/20 rounded-2xl p-8 text-center">
+        <div className="bg-red-500/20 backdrop-blur-lg rounded-2xl p-8 text-center">
           <p className="text-red-300 text-xl">❌ {error}</p>
-          <Link href="/" className="text-purple-300 mt-4 inline-block">← Go Back</Link>
+          <Link href="/" className="text-purple-300 mt-4 inline-block hover:underline">← Go Back</Link>
         </div>
       </div>
     );
@@ -64,14 +127,37 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-black to-blue-900 p-8">
-      <div className="max-w-4xl mx-auto">
+      <div ref={dashboardRef} className="max-w-6xl mx-auto">
+        
+        {/* Header with Share Buttons */}
+        <div className="flex justify-end gap-3 mb-6">
+          <button
+            onClick={handleDownload}
+            className="px-4 py-2 bg-purple-600/50 hover:bg-purple-600 rounded-lg text-white text-sm transition-all duration-300 hover:scale-105"
+          >
+            📸 Download
+          </button>
+          <button
+            onClick={handleShare}
+            className="px-4 py-2 bg-blue-600/50 hover:bg-blue-600 rounded-lg text-white text-sm transition-all duration-300 hover:scale-105"
+          >
+            🔗 Copy Link
+          </button>
+          <button
+            onClick={handleTwitterShare}
+            className="px-4 py-2 bg-sky-600/50 hover:bg-sky-600 rounded-lg text-white text-sm transition-all duration-300 hover:scale-105"
+          >
+            🐦 Tweet
+          </button>
+        </div>
+
         {/* User Profile Card */}
-        <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 mb-8">
+        <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 mb-8 transition-all duration-300 hover:shadow-2xl border border-white/20">
           <div className="flex items-center gap-6 flex-wrap">
             <img 
               src={user.avatar_url} 
               alt={user.name || user.login} 
-              className="w-24 h-24 rounded-full border-4 border-purple-500"
+              className="w-24 h-24 rounded-full border-4 border-purple-500 transition-all duration-300 hover:scale-105 hover:border-pink-500"
             />
             <div>
               <h1 className="text-3xl font-bold text-white">{user.name || user.login}</h1>
@@ -82,60 +168,117 @@ export default function Dashboard() {
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8 text-center">
-            <div className="bg-white/5 rounded-xl p-4">
-              <p className="text-2xl font-bold text-white">{user.followers}</p>
-              <p className="text-gray-400 text-sm">Followers</p>
+            <div className="bg-white/5 rounded-xl p-4 transition-all duration-300 hover:scale-105 hover:bg-white/10 hover:shadow-xl cursor-pointer">
+              <p className="text-3xl font-bold text-white">
+                <CountUp end={user.followers} duration={2} />
+              </p>
+              <p className="text-gray-400 text-sm mt-1">Followers</p>
             </div>
-            <div className="bg-white/5 rounded-xl p-4">
-              <p className="text-2xl font-bold text-white">{user.following}</p>
-              <p className="text-gray-400 text-sm">Following</p>
+            <div className="bg-white/5 rounded-xl p-4 transition-all duration-300 hover:scale-105 hover:bg-white/10 hover:shadow-xl cursor-pointer">
+              <p className="text-3xl font-bold text-white">
+                <CountUp end={user.following} duration={2} />
+              </p>
+              <p className="text-gray-400 text-sm mt-1">Following</p>
             </div>
-            <div className="bg-white/5 rounded-xl p-4">
-              <p className="text-2xl font-bold text-white">{user.public_repos}</p>
-              <p className="text-gray-400 text-sm">Public Repos</p>
+            <div className="bg-white/5 rounded-xl p-4 transition-all duration-300 hover:scale-105 hover:bg-white/10 hover:shadow-xl cursor-pointer">
+              <p className="text-3xl font-bold text-white">
+                <CountUp end={user.public_repos} duration={2} />
+              </p>
+              <p className="text-gray-400 text-sm mt-1">Public Repos</p>
             </div>
           </div>
         </div>
 
         {/* GitHub Wrapped Stats */}
         {stats && stats.stats && (
-          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8">
-            <h2 className="text-2xl font-bold text-white text-center mb-6">📊 GitHub Wrapped</h2>
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 mb-8 transition-all duration-300 hover:shadow-2xl border border-white/20">
+            <h2 className="text-3xl font-bold text-white text-center mb-8">📊 GitHub Wrapped 2024</h2>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <div className="bg-white/5 rounded-xl p-6 text-center">
-                <p className="text-4xl font-bold text-purple-400">{stats.stats.totalCommits}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {/* Total Commits */}
+              <div className="bg-gradient-to-br from-purple-600/30 to-pink-600/30 rounded-xl p-6 text-center transition-all duration-300 hover:scale-105 hover:shadow-xl border border-purple-500/30">
+                <div className="text-5xl mb-3">📝</div>
+                <p className="text-4xl font-bold text-white">
+                  <CountUp end={stats.stats.totalCommits} duration={2} />
+                </p>
                 <p className="text-gray-300 mt-2">Total Commits</p>
               </div>
-              <div className="bg-white/5 rounded-xl p-6 text-center">
-                <p className="text-4xl font-bold text-purple-400">{stats.stats.totalRepos}</p>
+
+              {/* Repositories */}
+              <div className="bg-gradient-to-br from-blue-600/30 to-cyan-600/30 rounded-xl p-6 text-center transition-all duration-300 hover:scale-105 hover:shadow-xl border border-blue-500/30">
+                <div className="text-5xl mb-3">📚</div>
+                <p className="text-4xl font-bold text-white">
+                  <CountUp end={stats.stats.totalRepos} duration={2} />
+                </p>
                 <p className="text-gray-300 mt-2">Repositories</p>
               </div>
-              <div className="bg-white/5 rounded-xl p-6 text-center">
-                <div className="text-5xl mb-2">{stats.stats.vibe?.split(' ')[0] || '🦉'}</div>
-                <p className="text-gray-300">{stats.stats.vibe || 'Coding Vibe'}</p>
+
+              {/* Longest Streak */}
+              <div className="bg-gradient-to-br from-orange-600/30 to-red-600/30 rounded-xl p-6 text-center transition-all duration-300 hover:scale-105 hover:shadow-xl border border-orange-500/30">
+                <div className="text-5xl mb-3">🔥</div>
+                <p className="text-4xl font-bold text-white">
+                  <CountUp end={stats.stats.longestStreak} duration={2} />
+                </p>
+                <p className="text-gray-300 mt-2">Day Streak</p>
               </div>
-              <div className="bg-white/5 rounded-xl p-6 text-center">
-                <p className="text-2xl font-bold text-purple-400">{stats.stats.mostActiveHour}:00</p>
-                <p className="text-gray-300 mt-2">Most Active Hour</p>
+
+              {/* Coding Vibe */}
+              <div className="bg-gradient-to-br from-green-600/30 to-emerald-600/30 rounded-xl p-6 text-center transition-all duration-300 hover:scale-105 hover:shadow-xl border border-green-500/30">
+                <div className="text-5xl mb-3">{stats.stats.vibe?.split(' ')[0] || '🦉'}</div>
+                <p className="text-xl font-bold text-white">{stats.stats.vibe || 'Coding Vibe'}</p>
+                <p className="text-gray-300 mt-2">Most Active: {stats.stats.mostActiveHour}:00</p>
               </div>
             </div>
 
             {/* Top Languages */}
             {stats.languages && stats.languages.length > 0 && (
-              <div className="mt-6">
-                <h3 className="text-xl font-bold text-white mb-4">🏆 Top Languages</h3>
-                <div className="flex flex-wrap gap-2">
+              <div className="mt-8">
+                <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                  <span>🏆</span> Top Languages
+                </h3>
+                <div className="flex flex-wrap gap-3">
                   {stats.languages.map((lang, i) => (
-                    <span key={i} className="bg-purple-600/50 px-4 py-2 rounded-full text-white">
+                    <span 
+                      key={i} 
+                      className="bg-gradient-to-r from-purple-600/50 to-pink-600/50 px-5 py-2 rounded-full text-white transition-all duration-300 hover:scale-105 hover:from-purple-600 hover:to-pink-600 cursor-pointer"
+                    >
                       {lang.name} ({lang.count})
                     </span>
                   ))}
                 </div>
               </div>
             )}
+
+            {/* Additional Stats Row */}
+            {stats.stats.totalPRs !== undefined && (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
+                <div className="bg-white/5 rounded-xl p-4 text-center transition-all duration-300 hover:scale-105">
+                  <p className="text-2xl font-bold text-purple-400">
+                    <CountUp end={stats.stats.totalPRs || 0} duration={2} />
+                  </p>
+                  <p className="text-gray-400 text-sm">Pull Requests</p>
+                </div>
+                <div className="bg-white/5 rounded-xl p-4 text-center transition-all duration-300 hover:scale-105">
+                  <p className="text-2xl font-bold text-purple-400">
+                    <CountUp end={stats.stats.totalIssues || 0} duration={2} />
+                  </p>
+                  <p className="text-gray-400 text-sm">Issues Opened</p>
+                </div>
+                <div className="bg-white/5 rounded-xl p-4 text-center transition-all duration-300 hover:scale-105">
+                  <p className="text-2xl font-bold text-purple-400">
+                    <CountUp end={stats.stats.totalStars || 0} duration={2} />
+                  </p>
+                  <p className="text-gray-400 text-sm">Stars Received</p>
+                </div>
+              </div>
+            )}
           </div>
         )}
+
+        {/* Fun Footer */}
+        <div className="text-center text-gray-500 text-sm mt-8">
+          <p>Made with 🚀 for GitHub developers | Data from GitHub API</p>
+        </div>
       </div>
     </div>
   );
