@@ -1,10 +1,15 @@
-''use client';
+'use client';
 
 import { useEffect, useState, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import CountUp from 'react-countup';
 import { toPng } from 'html-to-image';
+
+// Dynamically import charts to avoid SSR issues
+const MonthlyChart = dynamic(() => import('@/components/MonthlyChart'), { ssr: false });
+const TopLanguagesChart = dynamic(() => import('@/components/TopLanguagesChart'), { ssr: false });
 
 // Loading Skeleton Component
 function LoadingSkeleton() {
@@ -230,46 +235,45 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Top Languages */}
-            {stats.languages && stats.languages.length > 0 && (
-              <div className="mt-8">
-                <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                  <span>🏆</span> Top Languages
-                </h3>
-                <div className="flex flex-wrap gap-3">
-                  {stats.languages.map((lang, i) => (
-                    <span 
-                      key={i} 
-                      className="bg-gradient-to-r from-purple-600/50 to-pink-600/50 px-5 py-2 rounded-full text-white transition-all duration-300 hover:scale-105 hover:from-purple-600 hover:to-pink-600 cursor-pointer"
-                    >
-                      {lang.name} ({lang.count})
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
+            {/* Charts Section - Monthly Activity & Top Languages */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+              {/* Monthly Activity Bar Chart */}
+              <MonthlyChart 
+                monthlyCommits={stats.monthlyCommits || Array(12).fill(0)} 
+                monthNames={stats.monthNames || ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']}
+              />
+              
+              {/* Top Languages Pie Chart */}
+              <TopLanguagesChart languages={stats.top3Languages || stats.languages || []} />
+            </div>
 
-            {/* Additional Stats Row */}
-            {stats.stats.totalPRs !== undefined && (
+            {/* Additional Stats Row (PRs, Issues, Stars) */}
+            {(stats.stats.totalPRs !== undefined || stats.stats.totalIssues !== undefined || stats.stats.totalStars !== undefined) && (
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
-                <div className="bg-white/5 rounded-xl p-4 text-center transition-all duration-300 hover:scale-105">
-                  <p className="text-2xl font-bold text-purple-400">
-                    <CountUp end={stats.stats.totalPRs || 0} duration={2} />
-                  </p>
-                  <p className="text-gray-400 text-sm">Pull Requests</p>
-                </div>
-                <div className="bg-white/5 rounded-xl p-4 text-center transition-all duration-300 hover:scale-105">
-                  <p className="text-2xl font-bold text-purple-400">
-                    <CountUp end={stats.stats.totalIssues || 0} duration={2} />
-                  </p>
-                  <p className="text-gray-400 text-sm">Issues Opened</p>
-                </div>
-                <div className="bg-white/5 rounded-xl p-4 text-center transition-all duration-300 hover:scale-105">
-                  <p className="text-2xl font-bold text-purple-400">
-                    <CountUp end={stats.stats.totalStars || 0} duration={2} />
-                  </p>
-                  <p className="text-gray-400 text-sm">Stars Received</p>
-                </div>
+                {stats.stats.totalPRs !== undefined && (
+                  <div className="bg-white/5 rounded-xl p-4 text-center transition-all duration-300 hover:scale-105">
+                    <p className="text-2xl font-bold text-purple-400">
+                      <CountUp end={stats.stats.totalPRs || 0} duration={2} />
+                    </p>
+                    <p className="text-gray-400 text-sm">Pull Requests</p>
+                  </div>
+                )}
+                {stats.stats.totalIssues !== undefined && (
+                  <div className="bg-white/5 rounded-xl p-4 text-center transition-all duration-300 hover:scale-105">
+                    <p className="text-2xl font-bold text-purple-400">
+                      <CountUp end={stats.stats.totalIssues || 0} duration={2} />
+                    </p>
+                    <p className="text-gray-400 text-sm">Issues Opened</p>
+                  </div>
+                )}
+                {stats.stats.totalStars !== undefined && (
+                  <div className="bg-white/5 rounded-xl p-4 text-center transition-all duration-300 hover:scale-105">
+                    <p className="text-2xl font-bold text-purple-400">
+                      <CountUp end={stats.stats.totalStars || 0} duration={2} />
+                    </p>
+                    <p className="text-gray-400 text-sm">Stars Received</p>
+                  </div>
+                )}
               </div>
             )}
           </div>
