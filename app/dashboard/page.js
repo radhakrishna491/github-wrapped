@@ -10,13 +10,13 @@ import { toPng } from 'html-to-image';
 // Dynamically import charts to avoid SSR issues
 const MonthlyChart = dynamic(() => import('@/components/MonthlyChart'), { ssr: false });
 const TopLanguagesChart = dynamic(() => import('@/components/TopLanguagesChart'), { ssr: false });
+const YearlyProgressChart = dynamic(() => import('@/components/YearlyProgressChart'), { ssr: false });
 
 // Loading Skeleton Component
 function LoadingSkeleton() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-black to-blue-900 p-8">
       <div className="max-w-6xl mx-auto">
-        {/* Profile Skeleton */}
         <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 mb-8">
           <div className="flex items-center gap-6 flex-wrap">
             <div className="w-24 h-24 rounded-full bg-white/20 animate-pulse"></div>
@@ -34,7 +34,6 @@ function LoadingSkeleton() {
             ))}
           </div>
         </div>
-        {/* Stats Skeleton */}
         <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8">
           <div className="h-8 bg-white/20 rounded w-48 mx-auto mb-6 animate-pulse"></div>
           <div className="grid grid-cols-2 gap-6">
@@ -69,7 +68,6 @@ export default function Dashboard() {
 
     async function fetchData() {
       try {
-        // Fetch user data
         const userRes = await fetch(`https://api.github.com/users/${username}`);
         if (!userRes.ok) {
           if (userRes.status === 404) {
@@ -80,7 +78,6 @@ export default function Dashboard() {
         const userData = await userRes.json();
         setUser(userData);
 
-        // Fetch wrapped stats
         const statsRes = await fetch(`/api/wrapped/${username}`);
         const statsData = await statsRes.json();
         if (statsData.error) throw new Error(statsData.error);
@@ -104,7 +101,6 @@ export default function Dashboard() {
         link.click();
       } catch (err) {
         console.error('Error generating image:', err);
-        alert('Failed to generate image. Try again.');
       }
     }
   };
@@ -116,7 +112,7 @@ export default function Dashboard() {
   };
 
   const handleTwitterShare = () => {
-    const text = `Check out my GitHub Wrapped! I have ${stats?.stats?.totalCommits || 0} commits and I'm a ${stats?.stats?.vibe || 'Coder'}! 🚀`;
+    const text = `Check out my GitHub Wrapped! I have ${stats?.stats?.totalCommits || 0} commits and I'm a ${stats?.stats?.userLevel?.level || 'Developer'}! 🚀`;
     const url = window.location.href;
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
   };
@@ -144,40 +140,23 @@ export default function Dashboard() {
 
   if (!user) return null;
 
+  const userLevel = stats?.stats?.userLevel || { level: 'Beginner', icon: '🌱', color: 'from-green-600/30 to-emerald-600/30', badge: 'Starting Strong' };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-black to-blue-900 p-8">
       <div ref={dashboardRef} className="max-w-6xl mx-auto">
         
         {/* Header with Share Buttons */}
         <div className="flex justify-end gap-3 mb-6 flex-wrap">
-          <button
-            onClick={handleDownload}
-            className="px-4 py-2 bg-purple-600/50 hover:bg-purple-600 rounded-lg text-white text-sm transition-all duration-300 hover:scale-105"
-          >
-            📸 Download
-          </button>
-          <button
-            onClick={handleShare}
-            className="px-4 py-2 bg-blue-600/50 hover:bg-blue-600 rounded-lg text-white text-sm transition-all duration-300 hover:scale-105"
-          >
-            🔗 Copy Link
-          </button>
-          <button
-            onClick={handleTwitterShare}
-            className="px-4 py-2 bg-sky-600/50 hover:bg-sky-600 rounded-lg text-white text-sm transition-all duration-300 hover:scale-105"
-          >
-            🐦 Tweet
-          </button>
+          <button onClick={handleDownload} className="px-4 py-2 bg-purple-600/50 hover:bg-purple-600 rounded-lg text-white text-sm transition-all duration-300 hover:scale-105">📸 Download</button>
+          <button onClick={handleShare} className="px-4 py-2 bg-blue-600/50 hover:bg-blue-600 rounded-lg text-white text-sm transition-all duration-300 hover:scale-105">🔗 Copy Link</button>
+          <button onClick={handleTwitterShare} className="px-4 py-2 bg-sky-600/50 hover:bg-sky-600 rounded-lg text-white text-sm transition-all duration-300 hover:scale-105">🐦 Tweet</button>
         </div>
 
         {/* User Profile Card */}
         <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 mb-8 transition-all duration-300 hover:shadow-2xl border border-white/20">
           <div className="flex items-center gap-6 flex-wrap">
-            <img 
-              src={user.avatar_url} 
-              alt={user.name || user.login} 
-              className="w-24 h-24 rounded-full border-4 border-purple-500 transition-all duration-300 hover:scale-105 hover:border-pink-500"
-            />
+            <img src={user.avatar_url} alt={user.name || user.login} className="w-24 h-24 rounded-full border-4 border-purple-500 transition-all duration-300 hover:scale-105 hover:border-pink-500" />
             <div>
               <h1 className="text-3xl font-bold text-white">{user.name || user.login}</h1>
               <p className="text-gray-300">@{user.login}</p>
@@ -186,24 +165,24 @@ export default function Dashboard() {
             </div>
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8 text-center">
-            <div className="bg-white/5 rounded-xl p-4 transition-all duration-300 hover:scale-105 hover:bg-white/10 hover:shadow-xl cursor-pointer">
-              <p className="text-3xl font-bold text-white">
-                <CountUp end={user.followers} duration={2} />
-              </p>
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mt-8 text-center">
+            <div className="bg-white/5 rounded-xl p-4 transition-all duration-300 hover:scale-105 hover:bg-white/10">
+              <p className="text-3xl font-bold text-white"><CountUp end={user.followers} duration={2} /></p>
               <p className="text-gray-400 text-sm mt-1">Followers</p>
             </div>
-            <div className="bg-white/5 rounded-xl p-4 transition-all duration-300 hover:scale-105 hover:bg-white/10 hover:shadow-xl cursor-pointer">
-              <p className="text-3xl font-bold text-white">
-                <CountUp end={user.following} duration={2} />
-              </p>
+            <div className="bg-white/5 rounded-xl p-4 transition-all duration-300 hover:scale-105 hover:bg-white/10">
+              <p className="text-3xl font-bold text-white"><CountUp end={user.following} duration={2} /></p>
               <p className="text-gray-400 text-sm mt-1">Following</p>
             </div>
-            <div className="bg-white/5 rounded-xl p-4 transition-all duration-300 hover:scale-105 hover:bg-white/10 hover:shadow-xl cursor-pointer">
-              <p className="text-3xl font-bold text-white">
-                <CountUp end={user.public_repos} duration={2} />
-              </p>
+            <div className="bg-white/5 rounded-xl p-4 transition-all duration-300 hover:scale-105 hover:bg-white/10">
+              <p className="text-3xl font-bold text-white"><CountUp end={user.public_repos} duration={2} /></p>
               <p className="text-gray-400 text-sm mt-1">Public Repos</p>
+            </div>
+            {/* User Level Badge */}
+            <div className={`bg-gradient-to-br ${userLevel.color} rounded-xl p-4 transition-all duration-300 hover:scale-105 border border-white/20`}>
+              <div className="text-3xl mb-1">{userLevel.icon}</div>
+              <p className="text-xl font-bold text-white">{userLevel.level}</p>
+              <p className="text-gray-300 text-xs mt-1">{userLevel.badge}</p>
             </div>
           </div>
         </div>
@@ -214,86 +193,82 @@ export default function Dashboard() {
             <h2 className="text-3xl font-bold text-white text-center mb-8">📊 GitHub Wrapped 2024</h2>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {/* Total Commits */}
-              <div className="bg-gradient-to-br from-purple-600/30 to-pink-600/30 rounded-xl p-6 text-center transition-all duration-300 hover:scale-105 hover:shadow-xl border border-purple-500/30">
+              <div className="bg-gradient-to-br from-purple-600/30 to-pink-600/30 rounded-xl p-6 text-center transition-all duration-300 hover:scale-105 border border-purple-500/30">
                 <div className="text-5xl mb-3">📝</div>
-                <p className="text-4xl font-bold text-white">
-                  <CountUp end={stats.stats.totalCommits} duration={2} />
-                </p>
+                <p className="text-4xl font-bold text-white"><CountUp end={stats.stats.totalCommits} duration={2} /></p>
                 <p className="text-gray-300 mt-2">Total Commits</p>
               </div>
-
-              {/* Repositories */}
-              <div className="bg-gradient-to-br from-blue-600/30 to-cyan-600/30 rounded-xl p-6 text-center transition-all duration-300 hover:scale-105 hover:shadow-xl border border-blue-500/30">
+              <div className="bg-gradient-to-br from-blue-600/30 to-cyan-600/30 rounded-xl p-6 text-center transition-all duration-300 hover:scale-105 border border-blue-500/30">
                 <div className="text-5xl mb-3">📚</div>
-                <p className="text-4xl font-bold text-white">
-                  <CountUp end={stats.stats.totalRepos} duration={2} />
-                </p>
+                <p className="text-4xl font-bold text-white"><CountUp end={stats.stats.totalRepos} duration={2} /></p>
                 <p className="text-gray-300 mt-2">Repositories</p>
               </div>
-
-              {/* Longest Streak */}
-              <div className="bg-gradient-to-br from-orange-600/30 to-red-600/30 rounded-xl p-6 text-center transition-all duration-300 hover:scale-105 hover:shadow-xl border border-orange-500/30">
+              <div className="bg-gradient-to-br from-orange-600/30 to-red-600/30 rounded-xl p-6 text-center transition-all duration-300 hover:scale-105 border border-orange-500/30">
                 <div className="text-5xl mb-3">🔥</div>
-                <p className="text-4xl font-bold text-white">
-                  <CountUp end={stats.stats.longestStreak} duration={2} />
-                </p>
+                <p className="text-4xl font-bold text-white"><CountUp end={stats.stats.longestStreak} duration={2} /></p>
                 <p className="text-gray-300 mt-2">Day Streak</p>
               </div>
-
-              {/* Coding Vibe */}
-              <div className="bg-gradient-to-br from-green-600/30 to-emerald-600/30 rounded-xl p-6 text-center transition-all duration-300 hover:scale-105 hover:shadow-xl border border-green-500/30">
+              <div className="bg-gradient-to-br from-green-600/30 to-emerald-600/30 rounded-xl p-6 text-center transition-all duration-300 hover:scale-105 border border-green-500/30">
                 <div className="text-5xl mb-3">{stats.stats.vibe?.split(' ')[0] || '🦉'}</div>
                 <p className="text-xl font-bold text-white">{stats.stats.vibe || 'Coding Vibe'}</p>
                 <p className="text-gray-300 mt-2">Most Active: {stats.stats.mostActiveHour}:00</p>
               </div>
             </div>
 
-            {/* Charts Section - Monthly Activity & Top Languages */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
-              {/* Monthly Activity Bar Chart */}
-              <MonthlyChart 
+            {/* Three Charts Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
+              {/* Yearly Progress Pie Chart */}
+              <YearlyProgressChart 
                 monthlyCommits={stats.monthlyCommits || Array(12).fill(0)} 
                 monthNames={stats.monthNames || ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']}
+                monthlyPercentages={stats.monthlyPercentages || Array(12).fill(0)}
               />
               
               {/* Top Languages Pie Chart */}
               <TopLanguagesChart languages={stats.top3Languages || stats.languages || []} />
+              
+              {/* Monthly Bar Chart */}
+              <MonthlyChart 
+                monthlyCommits={stats.monthlyCommits || Array(12).fill(0)} 
+                monthNames={stats.monthNames || ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']}
+              />
             </div>
 
-            {/* Additional Stats Row (PRs, Issues, Stars) */}
-            {(stats.stats.totalPRs !== undefined || stats.stats.totalIssues !== undefined || stats.stats.totalStars !== undefined) && (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
-                {stats.stats.totalPRs !== undefined && (
-                  <div className="bg-white/5 rounded-xl p-4 text-center transition-all duration-300 hover:scale-105">
-                    <p className="text-2xl font-bold text-purple-400">
-                      <CountUp end={stats.stats.totalPRs || 0} duration={2} />
-                    </p>
-                    <p className="text-gray-400 text-sm">Pull Requests</p>
-                  </div>
-                )}
-                {stats.stats.totalIssues !== undefined && (
-                  <div className="bg-white/5 rounded-xl p-4 text-center transition-all duration-300 hover:scale-105">
-                    <p className="text-2xl font-bold text-purple-400">
-                      <CountUp end={stats.stats.totalIssues || 0} duration={2} />
-                    </p>
-                    <p className="text-gray-400 text-sm">Issues Opened</p>
-                  </div>
-                )}
-                {stats.stats.totalStars !== undefined && (
-                  <div className="bg-white/5 rounded-xl p-4 text-center transition-all duration-300 hover:scale-105">
-                    <p className="text-2xl font-bold text-purple-400">
-                      <CountUp end={stats.stats.totalStars || 0} duration={2} />
-                    </p>
-                    <p className="text-gray-400 text-sm">Stars Received</p>
-                  </div>
-                )}
+            {/* Top 3 Languages with Logos */}
+            {stats.top3Languages && stats.top3Languages.length > 0 && (
+              <div className="mt-8">
+                <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">🏆 Top 3 Languages</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {stats.top3Languages.map((lang, i) => (
+                    <div key={i} className="bg-white/5 rounded-xl p-4 text-center transition-all duration-300 hover:scale-105 hover:bg-white/10">
+                      <img src={lang.logo} alt={lang.name} className="w-12 h-12 mx-auto mb-2" />
+                      <p className="text-xl font-bold text-white">{lang.name}</p>
+                      <p className="text-purple-400 text-sm">{lang.count} repositories</p>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
+
+            {/* Additional Stats Row */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
+              <div className="bg-white/5 rounded-xl p-4 text-center hover:scale-105 transition">
+                <p className="text-2xl font-bold text-purple-400"><CountUp end={stats.stats.totalPRs || 0} duration={2} /></p>
+                <p className="text-gray-400 text-sm">Pull Requests</p>
+              </div>
+              <div className="bg-white/5 rounded-xl p-4 text-center hover:scale-105 transition">
+                <p className="text-2xl font-bold text-purple-400"><CountUp end={stats.stats.totalIssues || 0} duration={2} /></p>
+                <p className="text-gray-400 text-sm">Issues Opened</p>
+              </div>
+              <div className="bg-white/5 rounded-xl p-4 text-center hover:scale-105 transition">
+                <p className="text-2xl font-bold text-purple-400"><CountUp end={stats.stats.totalStars || 0} duration={2} /></p>
+                <p className="text-gray-400 text-sm">Stars Received</p>
+              </div>
+            </div>
           </div>
         )}
 
-        {/* Fun Footer */}
+        {/* Footer */}
         <div className="text-center text-gray-500 text-sm mt-8">
           <p>Made with 🚀 for GitHub developers | Data from GitHub API</p>
         </div>

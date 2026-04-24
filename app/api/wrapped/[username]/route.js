@@ -1,6 +1,17 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
+// Function to determine user level based on commits and repos
+function getUserLevel(totalCommits, totalRepos) {
+  if (totalCommits > 500 || totalRepos > 15) {
+    return { level: 'Pro', icon: '🚀', color: 'from-yellow-600/30 to-orange-600/30', badge: '🏆 Professional Developer' };
+  } else if (totalCommits >= 100 || totalRepos >= 5) {
+    return { level: 'Learner', icon: '📚', color: 'from-blue-600/30 to-cyan-600/30', badge: '🌟 Active Learner' };
+  } else {
+    return { level: 'Beginner', icon: '🌱', color: 'from-green-600/30 to-emerald-600/30', badge: '💪 Starting Strong' };
+  }
+}
+
 export async function GET(request, { params }) {
   const { username } = await params;
   
@@ -58,11 +69,34 @@ export async function GET(request, { params }) {
     const languageCount = {};
     let totalStars = 0;
     
-    // NEW: Monthly commits (Jan = 0, Dec = 11)
+    // Monthly commits (Jan = 0, Dec = 11)
     const monthlyCommits = Array(12).fill(0);
     
-    // Get commits from first 5 repos (to avoid rate limits)
-    for (const repo of repos.slice(0, 5)) {
+    // Language logo mapping
+    const languageLogos = {
+      'JavaScript': 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/javascript/javascript-original.svg',
+      'TypeScript': 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/typescript/typescript-original.svg',
+      'Python': 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg',
+      'Java': 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/java/java-original.svg',
+      'C++': 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/cplusplus/cplusplus-original.svg',
+      'C': 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/c/c-original.svg',
+      'C#': 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/csharp/csharp-original.svg',
+      'Go': 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/go/go-original.svg',
+      'Rust': 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/rust/rust-plain.svg',
+      'Ruby': 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/ruby/ruby-original.svg',
+      'PHP': 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/php/php-original.svg',
+      'Swift': 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/swift/swift-original.svg',
+      'Kotlin': 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/kotlin/kotlin-original.svg',
+      'HTML5': 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/html5/html5-original.svg',
+      'CSS3': 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/css3/css3-original.svg',
+      'React': 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/react/react-original.svg',
+      'Node.js': 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/nodejs/nodejs-original.svg',
+      'Django': 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/django/django-plain.svg',
+      'Flask': 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/flask/flask-original.svg',
+    };
+    
+    // Get commits from first 10 repos (to avoid rate limits)
+    for (const repo of repos.slice(0, 10)) {
       try {
         const commitsRes = await fetch(
           `https://api.github.com/repos/${username}/${repo.name}/commits?per_page=100&author=${username}`,
@@ -78,9 +112,9 @@ export async function GET(request, { params }) {
               const date = new Date(commit.commit?.author?.date);
               if (date && !isNaN(date.getTime())) {
                 const hour = date.getHours();
-                const month = date.getMonth(); // 0-11 (Jan-Dec)
+                const month = date.getMonth();
                 commitsByHour[hour]++;
-                monthlyCommits[month]++; // Add to monthly count
+                monthlyCommits[month]++;
               }
             });
           }
@@ -98,35 +132,33 @@ export async function GET(request, { params }) {
       totalStars += repo.stargazers_count || 0;
       
       // Small delay to avoid rate limiting
-      await new Promise(resolve => setTimeout(resolve, 200));
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
     
-    // Fetch PRs and Issues count (only if we have token, otherwise skip)
+    // Fetch PRs and Issues count
     let totalPRs = 0;
     let totalIssues = 0;
     
-    if (token) {
-      try {
-        const prsRes = await fetch(`https://api.github.com/search/issues?q=author:${username}+type:pr`, { headers });
-        const prsData = await prsRes.json();
-        totalPRs = prsData.total_count || 0;
-      } catch (err) {
-        console.log('Error fetching PRs:', err.message);
-      }
-      
-      try {
-        const issuesRes = await fetch(`https://api.github.com/search/issues?q=author:${username}+type:issue`, { headers });
-        const issuesData = await issuesRes.json();
-        totalIssues = issuesData.total_count || 0;
-      } catch (err) {
-        console.log('Error fetching issues:', err.message);
-      }
+    try {
+      const prsRes = await fetch(`https://api.github.com/search/issues?q=author:${username}+type:pr`, { headers });
+      const prsData = await prsRes.json();
+      totalPRs = prsData.total_count || 0;
+    } catch (err) {
+      console.log('Error fetching PRs:', err.message);
+    }
+    
+    try {
+      const issuesRes = await fetch(`https://api.github.com/search/issues?q=author:${username}+type:issue`, { headers });
+      const issuesData = await issuesRes.json();
+      totalIssues = issuesData.total_count || 0;
+    } catch (err) {
+      console.log('Error fetching issues:', err.message);
     }
     
     // Calculate longest streak (simplified)
     let longestStreak = 0;
     if (totalCommits > 0) {
-      longestStreak = Math.min(Math.floor(totalCommits / 10), 30);
+      longestStreak = Math.min(Math.floor(totalCommits / 15), 45);
     }
     
     // Find most active hour
@@ -146,17 +178,30 @@ export async function GET(request, { params }) {
     else if (mostActiveHour >= 17 && mostActiveHour < 22) vibe = "🌆 Evening Coder";
     else vibe = "🦉 Night Owl";
     
-    // Get top 5 languages
+    // Get top 5 languages with logos
     const topLanguages = Object.entries(languageCount)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5)
-      .map(([name, count]) => ({ name, count }));
+      .map(([name, count]) => ({ 
+        name, 
+        count,
+        logo: languageLogos[name] || 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/git/git-original.svg'
+      }));
     
     // Get top 3 languages for separate display
     const top3Languages = topLanguages.slice(0, 3);
     
+    // Get user level
+    const userLevel = getUserLevel(totalCommits, repos.length);
+    
     // Month names
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    
+    // Calculate total for yearly pie chart
+    const totalYearlyCommits = monthlyCommits.reduce((a, b) => a + b, 0);
+    const monthlyPercentages = monthlyCommits.map(commits => 
+      totalYearlyCommits > 0 ? Math.round((commits / totalYearlyCommits) * 100) : 0
+    );
     
     // Return response
     return NextResponse.json({
@@ -178,10 +223,12 @@ export async function GET(request, { params }) {
         totalPRs: totalPRs,
         totalIssues: totalIssues,
         totalStars: totalStars,
+        userLevel: userLevel,
       },
       languages: topLanguages,
       top3Languages: top3Languages,
       monthlyCommits: monthlyCommits,
+      monthlyPercentages: monthlyPercentages,
       monthNames: monthNames,
       commitsByHour: commitsByHour,
     });
