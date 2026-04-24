@@ -7,7 +7,7 @@ import dynamic from 'next/dynamic';
 import CountUp from 'react-countup';
 import { toPng } from 'html-to-image';
 
-// Dynamically import chart to avoid SSR issues (Only Yearly Progress Chart)
+// Dynamically import chart to avoid SSR issues
 const YearlyProgressChart = dynamic(() => import('@/components/YearlyProgressChart'), { ssr: false });
 
 // Loading Skeleton Component
@@ -110,7 +110,7 @@ export default function Dashboard() {
   };
 
   const handleTwitterShare = () => {
-    const text = `Check out my GitHub Wrapped! I have ${stats?.stats?.totalCommits || 0} commits and I'm a ${stats?.stats?.userLevel?.level || 'Developer'}! 🚀`;
+    const text = `Check out my GitHub Wrapped! I have ${stats?.stats?.totalCommits || 0} commits and I'm a ${stats?.stats?.gitHubAge?.level || 'Developer'}! 🚀`;
     const url = window.location.href;
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
   };
@@ -139,6 +139,7 @@ export default function Dashboard() {
   if (!user) return null;
 
   const userLevel = stats?.stats?.userLevel || { level: 'Beginner', icon: '🌱', color: 'from-green-600/30 to-emerald-600/30', badge: 'Starting Strong' };
+  const gitHubAge = stats?.stats?.gitHubAge || { level: 'Newbie', icon: '🆕', estimatedYears: 'Just getting started', description: 'Welcome to GitHub!', score: 0 };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-black to-blue-900 p-8">
@@ -183,6 +184,33 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+
+        {/* GitHub Age Prediction Card */}
+        {stats && stats.stats && stats.stats.gitHubAge && (
+          <div className="bg-gradient-to-br from-indigo-600/30 to-purple-600/30 rounded-2xl p-6 mb-8 transition-all duration-300 hover:scale-[1.02] border border-indigo-500/30">
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div className="flex items-center gap-4">
+                <div className="text-5xl">{gitHubAge.icon}</div>
+                <div>
+                  <h3 className="text-2xl font-bold text-white">GitHub Age Prediction</h3>
+                  <p className="text-purple-300 text-sm">Based on your activity and contributions</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-3xl font-bold text-white">{gitHubAge.level}</div>
+                <p className="text-gray-300 text-sm">Estimated: {gitHubAge.estimatedYears}</p>
+              </div>
+            </div>
+            <p className="text-gray-300 mt-4 text-center">{gitHubAge.description}</p>
+            <div className="mt-3 bg-white/10 rounded-full h-2 overflow-hidden">
+              <div 
+                className="bg-gradient-to-r from-green-500 to-purple-500 h-full rounded-full transition-all duration-1000"
+                style={{ width: `${gitHubAge.score}%` }}
+              />
+            </div>
+            <p className="text-gray-400 text-xs text-center mt-2">Experience Score: {gitHubAge.score}/100</p>
+          </div>
+        )}
 
         {/* GitHub Wrapped Stats */}
         {stats && stats.stats && (

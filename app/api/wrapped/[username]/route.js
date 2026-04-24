@@ -12,6 +12,103 @@ function getUserLevel(totalCommits, totalRepos) {
   }
 }
 
+// Function to predict GitHub Age based on performance metrics
+function predictGitHubAge(totalCommits, totalRepos, totalPRs, totalIssues, totalStars, longestStreak) {
+  // Calculate experience score (0-100)
+  let score = 0;
+  
+  // Commit score (max 30 points)
+  if (totalCommits > 5000) score += 30;
+  else if (totalCommits > 2000) score += 25;
+  else if (totalCommits > 1000) score += 20;
+  else if (totalCommits > 500) score += 15;
+  else if (totalCommits > 200) score += 10;
+  else if (totalCommits > 50) score += 5;
+  else score += 2;
+  
+  // Repo score (max 20 points)
+  if (totalRepos > 50) score += 20;
+  else if (totalRepos > 30) score += 15;
+  else if (totalRepos > 20) score += 10;
+  else if (totalRepos > 10) score += 5;
+  else if (totalRepos > 5) score += 3;
+  else score += 1;
+  
+  // PR score (max 20 points)
+  if (totalPRs > 500) score += 20;
+  else if (totalPRs > 200) score += 15;
+  else if (totalPRs > 100) score += 10;
+  else if (totalPRs > 50) score += 5;
+  else if (totalPRs > 10) score += 3;
+  else score += 1;
+  
+  // Issues score (max 15 points)
+  if (totalIssues > 200) score += 15;
+  else if (totalIssues > 100) score += 10;
+  else if (totalIssues > 50) score += 7;
+  else if (totalIssues > 20) score += 5;
+  else if (totalIssues > 5) score += 3;
+  else score += 1;
+  
+  // Stars score (max 10 points)
+  if (totalStars > 500) score += 10;
+  else if (totalStars > 200) score += 7;
+  else if (totalStars > 100) score += 5;
+  else if (totalStars > 50) score += 3;
+  else if (totalStars > 10) score += 2;
+  else score += 1;
+  
+  // Streak score (max 5 points)
+  if (longestStreak > 100) score += 5;
+  else if (longestStreak > 50) score += 4;
+  else if (longestStreak > 30) score += 3;
+  else if (longestStreak > 14) score += 2;
+  else if (longestStreak > 7) score += 1;
+  
+  // Determine GitHub Age based on score
+  let ageLevel, ageIcon, ageDescription, estimatedYears;
+  
+  if (score >= 90) {
+    ageLevel = 'Legend';
+    ageIcon = '👑';
+    estimatedYears = '8+ years';
+    ageDescription = 'A true GitHub legend! Your contributions are inspiring generations of developers.';
+  } else if (score >= 70) {
+    ageLevel = 'Expert';
+    ageIcon = '🏆';
+    estimatedYears = '5-8 years';
+    ageDescription = 'Expert level developer with extensive open source experience. You know the craft!';
+  } else if (score >= 50) {
+    ageLevel = 'Advanced';
+    ageIcon = '🚀';
+    estimatedYears = '3-5 years';
+    ageDescription = 'Advanced developer making significant contributions. Your code impacts many.';
+  } else if (score >= 30) {
+    ageLevel = 'Intermediate';
+    ageIcon = '📚';
+    estimatedYears = '1-3 years';
+    ageDescription = 'Growing developer with consistent activity. Keep up the great work!';
+  } else if (score >= 15) {
+    ageLevel = 'Beginner';
+    ageIcon = '🌱';
+    estimatedYears = 'Less than 1 year';
+    ageDescription = 'Starting your GitHub journey. Every expert was once a beginner!';
+  } else {
+    ageLevel = 'Newbie';
+    ageIcon = '🆕';
+    estimatedYears = 'Just getting started';
+    ageDescription = 'Welcome to the GitHub community! Your journey starts here.';
+  }
+  
+  return {
+    level: ageLevel,
+    icon: ageIcon,
+    estimatedYears: estimatedYears,
+    description: ageDescription,
+    score: score,
+  };
+}
+
 export async function GET(request, { params }) {
   const { username } = await params;
   
@@ -186,6 +283,10 @@ export async function GET(request, { params }) {
     
     const top3Languages = topLanguages.slice(0, 3);
     const userLevel = getUserLevel(totalCommits, repos.length);
+    
+    // Calculate GitHub Age
+    const gitHubAge = predictGitHubAge(totalCommits, repos.length, totalPRs, totalIssues, totalStars, longestStreak);
+    
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const totalYearlyCommits = monthlyCommits.reduce((a, b) => a + b, 0);
     const monthlyPercentages = monthlyCommits.map(commits => 
@@ -212,6 +313,7 @@ export async function GET(request, { params }) {
         totalIssues: totalIssues,
         totalStars: totalStars,
         userLevel: userLevel,
+        gitHubAge: gitHubAge,
       },
       languages: topLanguages,
       top3Languages: top3Languages,
