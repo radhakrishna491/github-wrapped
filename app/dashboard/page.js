@@ -7,8 +7,7 @@ import dynamic from 'next/dynamic';
 import CountUp from 'react-countup';
 import { toPng } from 'html-to-image';
 
-// Dynamically import charts to avoid SSR issues
-const TopLanguagesChart = dynamic(() => import('@/components/TopLanguagesChart'), { ssr: false });
+// Dynamically import chart to avoid SSR issues (Only Yearly Progress Chart)
 const YearlyProgressChart = dynamic(() => import('@/components/YearlyProgressChart'), { ssr: false });
 
 // Loading Skeleton Component
@@ -213,27 +212,25 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Two Charts Row - Yearly Progress & Top Languages */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
+            {/* Yearly Progress Pie Chart - Full Width */}
+            <div className="mt-8 max-w-md mx-auto">
               <YearlyProgressChart 
                 monthlyCommits={stats.monthlyCommits || Array(12).fill(0)} 
                 monthNames={stats.monthNames || ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']}
                 monthlyPercentages={stats.monthlyPercentages || Array(12).fill(0)}
               />
-              
-              <TopLanguagesChart languages={stats.top3Languages || stats.languages || []} />
             </div>
 
             {/* Top 3 Languages with Logos */}
             {stats.top3Languages && stats.top3Languages.length > 0 && (
               <div className="mt-8">
-                <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">🏆 Top 3 Languages</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <h3 className="text-xl font-bold text-white mb-4 text-center flex items-center justify-center gap-2">🏆 Top 3 Languages</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-2xl mx-auto">
                   {stats.top3Languages.map((lang, i) => (
-                    <div key={i} className="bg-white/5 rounded-xl p-4 text-center transition-all duration-300 hover:scale-105 hover:bg-white/10">
-                      <img src={lang.logo} alt={lang.name} className="w-12 h-12 mx-auto mb-2" />
+                    <div key={i} className="bg-gradient-to-br from-purple-600/30 to-pink-600/30 rounded-xl p-6 text-center transition-all duration-300 hover:scale-105 hover:shadow-xl border border-purple-500/30">
+                      <img src={lang.logo} alt={lang.name} className="w-16 h-16 mx-auto mb-3" />
                       <p className="text-xl font-bold text-white">{lang.name}</p>
-                      <p className="text-purple-400 text-sm">{lang.count} repositories</p>
+                      <p className="text-purple-300 text-sm mt-1">{lang.count} {lang.count === 1 ? 'repository' : 'repositories'}</p>
                     </div>
                   ))}
                 </div>
