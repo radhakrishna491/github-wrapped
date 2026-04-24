@@ -10,7 +10,6 @@ export default function Home() {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (username.trim()) {
-      // Use query parameter
       router.push(`/dashboard?username=${username}`);
     }
   };

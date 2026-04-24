@@ -8,7 +8,6 @@ import CountUp from 'react-countup';
 import { toPng } from 'html-to-image';
 
 // Dynamically import charts to avoid SSR issues
-const MonthlyChart = dynamic(() => import('@/components/MonthlyChart'), { ssr: false });
 const TopLanguagesChart = dynamic(() => import('@/components/TopLanguagesChart'), { ssr: false });
 const YearlyProgressChart = dynamic(() => import('@/components/YearlyProgressChart'), { ssr: false });
 
@@ -178,7 +177,6 @@ export default function Dashboard() {
               <p className="text-3xl font-bold text-white"><CountUp end={user.public_repos} duration={2} /></p>
               <p className="text-gray-400 text-sm mt-1">Public Repos</p>
             </div>
-            {/* User Level Badge */}
             <div className={`bg-gradient-to-br ${userLevel.color} rounded-xl p-4 transition-all duration-300 hover:scale-105 border border-white/20`}>
               <div className="text-3xl mb-1">{userLevel.icon}</div>
               <p className="text-xl font-bold text-white">{userLevel.level}</p>
@@ -215,23 +213,15 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Three Charts Row */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
-              {/* Yearly Progress Pie Chart */}
+            {/* Two Charts Row - Yearly Progress & Top Languages */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
               <YearlyProgressChart 
                 monthlyCommits={stats.monthlyCommits || Array(12).fill(0)} 
                 monthNames={stats.monthNames || ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']}
                 monthlyPercentages={stats.monthlyPercentages || Array(12).fill(0)}
               />
               
-              {/* Top Languages Pie Chart */}
               <TopLanguagesChart languages={stats.top3Languages || stats.languages || []} />
-              
-              {/* Monthly Bar Chart */}
-              <MonthlyChart 
-                monthlyCommits={stats.monthlyCommits || Array(12).fill(0)} 
-                monthNames={stats.monthNames || ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']}
-              />
             </div>
 
             {/* Top 3 Languages with Logos */}

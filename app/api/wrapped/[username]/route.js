@@ -95,7 +95,7 @@ export async function GET(request, { params }) {
       'Flask': 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/flask/flask-original.svg',
     };
     
-    // Get commits from first 10 repos (to avoid rate limits)
+    // Get commits from first 10 repos
     for (const repo of repos.slice(0, 10)) {
       try {
         const commitsRes = await fetch(
@@ -123,15 +123,11 @@ export async function GET(request, { params }) {
         console.log(`Error fetching commits for ${repo.name}:`, err.message);
       }
       
-      // Count languages
       if (repo.language) {
         languageCount[repo.language] = (languageCount[repo.language] || 0) + 1;
       }
       
-      // Count stars
       totalStars += repo.stargazers_count || 0;
-      
-      // Small delay to avoid rate limiting
       await new Promise(resolve => setTimeout(resolve, 100));
     }
     
@@ -155,7 +151,7 @@ export async function GET(request, { params }) {
       console.log('Error fetching issues:', err.message);
     }
     
-    // Calculate longest streak (simplified)
+    // Calculate longest streak
     let longestStreak = 0;
     if (totalCommits > 0) {
       longestStreak = Math.min(Math.floor(totalCommits / 15), 45);
@@ -178,7 +174,7 @@ export async function GET(request, { params }) {
     else if (mostActiveHour >= 17 && mostActiveHour < 22) vibe = "🌆 Evening Coder";
     else vibe = "🦉 Night Owl";
     
-    // Get top 5 languages with logos
+    // Get top languages with logos
     const topLanguages = Object.entries(languageCount)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5)
@@ -188,22 +184,14 @@ export async function GET(request, { params }) {
         logo: languageLogos[name] || 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/git/git-original.svg'
       }));
     
-    // Get top 3 languages for separate display
     const top3Languages = topLanguages.slice(0, 3);
-    
-    // Get user level
     const userLevel = getUserLevel(totalCommits, repos.length);
-    
-    // Month names
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    
-    // Calculate total for yearly pie chart
     const totalYearlyCommits = monthlyCommits.reduce((a, b) => a + b, 0);
     const monthlyPercentages = monthlyCommits.map(commits => 
       totalYearlyCommits > 0 ? Math.round((commits / totalYearlyCommits) * 100) : 0
     );
     
-    // Return response
     return NextResponse.json({
       user: {
         name: userData.name || userData.login,

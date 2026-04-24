@@ -11,7 +11,6 @@ import {
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 export default function YearlyProgressChart({ monthlyCommits, monthNames, monthlyPercentages }) {
-  // Filter out months with zero commits for better visualization
   const nonZeroMonths = [];
   const nonZeroCommits = [];
   const nonZeroPercentages = [];
@@ -24,7 +23,6 @@ export default function YearlyProgressChart({ monthlyCommits, monthNames, monthl
     }
   }
   
-  // If no commits at all, show placeholder
   if (nonZeroMonths.length === 0) {
     return (
       <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 text-center">
@@ -60,27 +58,16 @@ export default function YearlyProgressChart({ monthlyCommits, monthNames, monthl
         labels: {
           color: 'white',
           font: {
-            size: 11,
+            size: 10,
           },
         },
       },
-      tooltip: {
-        callbacks: {
-          label: function(context) {
-            const label = context.label || '';
-            const value = context.raw || 0;
-            const total = nonZeroCommits.reduce((a, b) => a + b, 0);
-            const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
-            return `${label}: ${value} commits (${percentage}%)`;
-          }
-        }
-      },
       title: {
         display: true,
-        text: '📅 Yearly Progress Distribution',
+        text: '📅 Yearly Progress',
         color: 'white',
         font: {
-          size: 16,
+          size: 14,
           weight: 'bold',
         },
       },
@@ -90,11 +77,11 @@ export default function YearlyProgressChart({ monthlyCommits, monthNames, monthl
   const totalCommits = nonZeroCommits.reduce((a, b) => a + b, 0);
   
   return (
-    <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6">
+    <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-4">
       <Pie data={data} options={options} />
-      <div className="text-center mt-4">
-        <p className="text-gray-300 text-sm">
-          Total Commits in Active Months: <span className="text-purple-400 font-bold">{totalCommits}</span>
+      <div className="text-center mt-3">
+        <p className="text-gray-300 text-xs">
+          Total: <span className="text-purple-400 font-bold">{totalCommits}</span> commits
         </p>
       </div>
     </div>

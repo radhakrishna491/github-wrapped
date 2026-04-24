@@ -21,7 +21,6 @@ export default function TopLanguagesChart({ languages }) {
 
   const colors = [
     '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
-    '#FF9F40', '#FFCD56', '#C9CBCF', '#7F8C8D', '#2ECC71'
   ];
 
   const data = {
@@ -45,7 +44,7 @@ export default function TopLanguagesChart({ languages }) {
         labels: {
           color: 'white',
           font: {
-            size: 12,
+            size: 11,
           },
         },
       },
@@ -54,7 +53,7 @@ export default function TopLanguagesChart({ languages }) {
         text: '🏆 Top Languages',
         color: 'white',
         font: {
-          size: 16,
+          size: 14,
           weight: 'bold',
         },
       },
@@ -62,7 +61,7 @@ export default function TopLanguagesChart({ languages }) {
   };
 
   return (
-    <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6">
+    <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-4">
       <Pie data={data} options={options} />
     </div>
   );
